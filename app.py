@@ -64,9 +64,10 @@ with st.sidebar:
     st.divider()
 
     # Status sistem (RK-7: hanya status, bukan isi Core Layer)
+    sumber_label = _cs.get("sumber", "Built-in")
     st.markdown(
-        f"**Status Sistem**  \n{_cs['status']}  \n"
-        f"Versi: `{_cs['versi']}` | ID: `{_cs['hash']}`"
+        f"{_cs['status']}  \n"
+        f"Versi: `{_cs['versi']}` | Sumber: {sumber_label} | ID: `{_cs['hash']}`"
     )
 
     # Informasi pengembangan (menggantikan eksposur Core Layer)

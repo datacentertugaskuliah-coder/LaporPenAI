@@ -906,41 +906,78 @@ def detect_mode(status_data: str) -> str:
 
 
 # ════════════════════════════════════════════════════════════════
-# PROTEKSI CORE LAYER (RK-7: Invisible Core Architecture)
-# Core Layer tidak pernah ditampilkan di UI.
+# CORE LAYER BUILT-IN (RK-7: Invisible Core Architecture)
+#
+# Core Layer ditanamkan langsung di kode sebagai default.
+# Secrets tetap digunakan jika tersedia (untuk override).
+# Sistem SELALU berjalan — tidak ada st.stop() karena secrets.
+# Core Layer tidak pernah ditampilkan di UI manapun.
 # ════════════════════════════════════════════════════════════════
 
-def get_core_layer_prompt() -> str:
-    """Ambil Core Layer dari Secrets — tidak pernah ditampilkan ke UI."""
+# Core Layer default — tertanam langsung, tidak perlu konfigurasi eksternal.
+# Ini adalah "otak" sistem yang berjalan di latar belakang.
+_DEFAULT_CORE = (
+    "RESEARCH WORKFLOW ORCHESTRATOR v6.0 | "
+    "13 langkah adaptif: inisialisasi — audit — pemetaan — literatur — "
+    "pertanyaan — desain — etik — pilot — data — analisis — pembahasan — "
+    "laporan — finalisasi. "
+    "Mode: PRIMER_KONFIRMATORI atau SEKUNDER_EKSPLORATORI. "
+    "Bidang: Umum; Soshum; Saintek; Ilmu Komputer. "
+    "Luaran: Skripsi; Tesis; Disertasi; Hibah Bima; BRIN; Jurnal. "
+    "Aturan mutlak: tidak ada data palsu; tidak ada HARKing; "
+    "tidak ada salami slicing; tidak ada sitasi fiktif; "
+    "tanda baca konsisten (. , ; : - ? ! \" \' ( ) [ ] / ...); "
+    "kata asing bukan serapan ditulis miring (PEUBI); "
+    "respons manusiawi — hindari pola kalimat robotik; "
+    "setiap keputusan tercatat di Integrity Ledger. "
+    "RK-6 Human Writing Engine aktif. "
+    "RK-7 Invisible Core aktif. "
+    "RK-8 Anti-AI Filter aktif. "
+    "RK-9 Punctuation System aktif. "
+    "RK-10 Global Visual Intelligence aktif."
+)
+
+
+def _ambil_prompt() -> str:
+    """
+    Mengambil prompt Core Layer.
+    Prioritas: (1) Streamlit Secrets, (2) default built-in.
+    Tidak pernah gagal — sistem selalu berjalan.
+    """
     try:
-        prompt = str(st.secrets.get("CORE_LAYER_PROMPT", ""))
-        if len(prompt.strip()) < 50:
-            st.error(
-                "⚠️ **Sistem belum dikonfigurasi.**\n\n"
-                "Untuk menjalankan:\n"
-                "- **Lokal**: isi `.streamlit/secrets.toml`\n"
-                "- **Streamlit Cloud**: isi di *Advanced settings → Secrets*"
-            )
-            st.stop()
-        h = hashlib.sha256(prompt.encode()).hexdigest()[:16]
-        if "cl_h" not in st.session_state:
-            st.session_state.cl_h = h
-        return prompt
+        dari_secrets = str(st.secrets.get("CORE_LAYER_PROMPT", "")).strip()
+        if len(dari_secrets) >= 50:
+            return dari_secrets
     except Exception:
-        st.error("⚠️ Konfigurasi sistem tidak ditemukan. Hubungi administrator.")
-        st.stop()
+        pass
+    return _DEFAULT_CORE
+
+
+def get_core_layer_prompt() -> str:
+    """
+    Ambil Core Layer — selalu berhasil, tidak pernah st.stop().
+    Prompt tidak pernah ditampilkan ke UI.
+    """
+    prompt = _ambil_prompt()
+    h = hashlib.sha256(prompt.encode()).hexdigest()[:16]
+    if "cl_h" not in st.session_state:
+        st.session_state.cl_h = h
+    return prompt
 
 
 def core_status() -> dict:
     """Status sistem — tanpa mengekspos isi Core Layer."""
+    prompt = _ambil_prompt()
+    dari_secrets = False
     try:
-        prompt = str(st.secrets.get("CORE_LAYER_PROMPT", ""))
-        valid  = len(prompt.strip()) >= 50
-        return {
-            "aktif": valid,
-            "versi": VERSI,
-            "status": InvisibleCore.status_ringkas(prompt),
-            "hash": InvisibleCore.hash_verifikasi(prompt) if valid else "—",
-        }
+        s = str(st.secrets.get("CORE_LAYER_PROMPT", "")).strip()
+        dari_secrets = len(s) >= 50
     except Exception:
-        return {"aktif": False, "versi": VERSI, "status": "❌ Tidak aktif", "hash": "—"}
+        pass
+    return {
+        "aktif": True,
+        "versi": VERSI,
+        "sumber": "Secrets" if dari_secrets else "Built-in",
+        "status": "✅ Sistem aktif dan berjalan normal",
+        "hash": InvisibleCore.hash_verifikasi(prompt),
+    }
